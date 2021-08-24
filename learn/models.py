@@ -33,8 +33,8 @@ class Card(models.Model):
                               choices=card_statuses,
                               default=new_word_status)
     categories = models.ManyToManyField(CardCategory, related_name='categories')
-    repeated_count = models.IntegerField(verbose_name='Количество повторений',
-                                         max_length=1, default=0)
+    remain_repeated_count = models.IntegerField(verbose_name='Количество повторений',
+                                                default=6)
 
     def __str__(self):
         return f'{self.status}: {self.ru_word} - {self.en_word}'
