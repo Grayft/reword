@@ -1,5 +1,6 @@
 from django.db import models
 from pytils.translit import slugify
+from django.contrib.auth.models import User
 
 
 class CardCategory(models.Model):
@@ -7,6 +8,9 @@ class CardCategory(models.Model):
 
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True, db_index=True)
+    owner = models.ForeignKey(User, verbose_name='Пользователь',
+                              default=1,
+                              on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -32,9 +36,11 @@ class Card(models.Model):
     status = models.CharField(max_length=25,
                               choices=card_statuses,
                               default=new_word_status)
-    categories = models.ManyToManyField(CardCategory, related_name='categories')
-    remain_repeated_count = models.IntegerField(verbose_name='Количество повторений',
-                                                default=6)
+    categories = models.ManyToManyField(CardCategory,
+                                        related_name='categories')
+    remain_repeated_count = models.IntegerField(
+        verbose_name='Количество повторений',
+        default=6)
 
     def __str__(self):
         return f'{self.status}: {self.ru_word} - {self.en_word}'

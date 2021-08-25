@@ -1,5 +1,11 @@
 
-/.idea
+#ide filse
+.idea
+#libraries files
 /env
-/reword/.idea
+#compiling files
 __pycache__
+#migration files
+migrations
+#database
+db.sqlite3

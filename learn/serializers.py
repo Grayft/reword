@@ -5,8 +5,8 @@ from .models import CardCategory, Card
 class CardCategorySerializer(ModelSerializer):
     class Meta:
         model = CardCategory
-        fields = ('id', 'name', 'slug')
-        read_only_fields = ('slug', )
+        fields = ('id', 'owner', 'name', 'slug')
+        read_only_fields = ('owner', 'slug')
 
 
 class CardSerializer(ModelSerializer):
