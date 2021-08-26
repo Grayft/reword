@@ -30,3 +30,9 @@ class CardApi(ModelViewSet):
     serializer_class = CardSerializer
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
+
+
+    def get_queryset(self):
+        accessible_queryset = Card.objects.filter(
+            categories__owner=self.request.user)
+        return accessible_queryset
