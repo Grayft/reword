@@ -7,10 +7,13 @@ class CardCategory(models.Model):
     """Модель категории, к которой может относиться карточка для изучения"""
 
     name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100, unique=True, db_index=True)
+    slug = models.SlugField(max_length=100, db_index=True)
     owner = models.ForeignKey(User, verbose_name='Пользователь',
                               default=1,
                               on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('owner', 'slug')
 
     def __str__(self):
         return self.name
@@ -21,7 +24,9 @@ class CardCategory(models.Model):
 
 
 class Card(models.Model):
-    """Модель карточки для изучения слова, фразы."""
+    """Модель карточки для изучения слова, фразы.
+    Все взаимодействие с карточками происходит через категории,
+    поэтому Card не имеет поле owner"""
 
     new_word_status = 'New word'
     card_statuses = [(new_word_status, 'Новое слово'),

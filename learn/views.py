@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, \
 class CardCategoryApi(ModelViewSet):
     queryset = CardCategory.objects.all()
     serializer_class = CardCategorySerializer
+    lookup_field = 'slug'
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
 
