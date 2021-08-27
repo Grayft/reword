@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from .models import CardCategory, Card, User
-from .serializers import CardCategorySerializer, CardSerializer
+from .serializers import CardCategorySerializer, CardSerializer, \
+    CardCategoryRetrieveSerializer
 from rest_framework.authentication import SessionAuthentication, \
     BasicAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, \
@@ -15,14 +16,15 @@ class CardCategoryApi(ModelViewSet):
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        creating_user = User.objects.get(username=self.request.user)
-        serializer.save(owner=creating_user)
-
     def get_queryset(self):
         accessible_queryset = CardCategory.objects.filter(
-            owner__username=self.request.user)
+            owner__pk=self.request.user.pk)
+        print(self.action)
         return accessible_queryset
+
+    def perform_create(self, serializer):
+        auth_user_pk = User.objects.get(pk=self.request.user.pk)
+        serializer.save(owner=auth_user_pk)
 
 
 class CardApi(ModelViewSet):
@@ -30,7 +32,6 @@ class CardApi(ModelViewSet):
     serializer_class = CardSerializer
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
-
 
     def get_queryset(self):
         accessible_queryset = Card.objects.filter(

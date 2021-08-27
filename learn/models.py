@@ -14,6 +14,7 @@ class CardCategory(models.Model):
 
     class Meta:
         unique_together = ('owner', 'slug')
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -46,6 +47,9 @@ class Card(models.Model):
     remain_repeated_count = models.IntegerField(
         verbose_name='Количество повторений',
         default=6)
+
+    class Meta:
+        ordering = ('en_word',)
 
     def __str__(self):
         return f'{self.status}: {self.ru_word} - {self.en_word}'
