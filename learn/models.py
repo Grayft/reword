@@ -43,7 +43,8 @@ class Card(models.Model):
                               choices=card_statuses,
                               default=new_word_status)
     categories = models.ManyToManyField(CardCategory,
-                                        related_name='categories')
+                                        related_name='cards',
+                                        related_query_name='categories')
     remain_repeated_count = models.IntegerField(
         verbose_name='Количество повторений',
         default=6)
