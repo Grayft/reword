@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Card, CardCategory
+from .models import UserCard, UserCategory
 # Register your models here.
 
 
@@ -11,5 +11,5 @@ class CardCategoryAdmin(admin.ModelAdmin):
     pass
 
 
-admin.site.register(Card, CardAdmin)
-admin.site.register(CardCategory, CardCategoryAdmin)
+admin.site.register(UserCard, CardAdmin)
+admin.site.register(UserCategory, CardCategoryAdmin)

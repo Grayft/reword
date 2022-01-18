@@ -1,5 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
-from .models import CardCategory, Card, User
+from .models import UserCategory, UserCard, User
 from .serializers import BasicCardSerializer, BasicCardCategorySerializer, \
     CardCategoryRetrieveSerializer
 from rest_framework.authentication import SessionAuthentication, \
@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 class CardCategoryApi(ModelViewSet):
-    queryset = CardCategory.objects.all()
+    queryset = UserCategory.objects.all()
     lookup_field = 'slug'
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
@@ -17,7 +17,7 @@ class CardCategoryApi(ModelViewSet):
                              'retrieve': CardCategoryRetrieveSerializer}
 
     def get_queryset(self):
-        accessible_queryset = CardCategory.objects.filter(
+        accessible_queryset = UserCategory.objects.filter(
             owner__pk=self.request.user.pk)
         return accessible_queryset
 
@@ -31,12 +31,12 @@ class CardCategoryApi(ModelViewSet):
 
 
 class CardApi(ModelViewSet):
-    queryset = Card.objects.all()
+    queryset = UserCard.objects.all()
     serializer_class = BasicCardSerializer
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        accessible_queryset = Card.objects.filter(
+        accessible_queryset = UserCard.objects.filter(
             categories__owner=self.request.user)
         return accessible_queryset
