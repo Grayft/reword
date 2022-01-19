@@ -1,6 +1,8 @@
 from django.db import models
 from pytils.translit import slugify
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class BasicCategory(models.Model):
@@ -38,7 +40,7 @@ class UserCategory(models.Model):
 
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, db_index=True)
-    owner = models.ForeignKey('CustomUser', verbose_name='Пользователь',
+    owner = models.ForeignKey(User, verbose_name='Пользователь',
                               on_delete=models.CASCADE)
 
     class Meta:
@@ -75,7 +77,7 @@ class UserCard(models.Model):
                               default=new_word_status)
 
     count_repeated = models.IntegerField(null=True, default=0)
-    owner = models.ForeignKey('CustomUser', verbose_name='Пользователь',
+    owner = models.ForeignKey(User, verbose_name='Пользователь',
                               on_delete=models.CASCADE)
     categories = models.ManyToManyField(UserCategory,
                                         related_name='cards')
@@ -87,56 +89,51 @@ class UserCard(models.Model):
         return f'{self.status}: {self.ru_word} - {self.en_word}'
 
 
-class UserManager(models.Manager):
-    """К новому юзеру должны быть прикреплены все базовые категории о
-    карточки слов"""
-    def _create_user_related_objs(self, user):
-        """Создаются изначальные карточки для юзера"""
-        new_categories = [UserCategory(name=basic_category.name,
-                                       slug=basic_category.slug,
-                                       owner=user)
-                          for basic_category in BasicCategory.objects.all(
-            ).order_by('id')[0:2]
-                          ]
-        UserCategory.objects.bulk_create(new_categories,
-                                         batch_size=999)
+def _create_user_related_objs(user):
+    """Создаются изначальные карточки для юзера"""
+    new_categories = [UserCategory(name=basic_category.name,
+                                   slug=basic_category.slug,
+                                   owner=user)
+                      for basic_category in BasicCategory.objects.all(
+        ).order_by('id')[0:2]
+                      ]
+    UserCategory.objects.bulk_create(new_categories,
+                                     batch_size=999)
 
-        new_cards = [UserCard(ru_word=basic_card.ru_word,
-                              en_word=basic_card.en_word,
-                              transcription=basic_card.transcription,
-                              owner=user)
-                     for basic_card in BasicCard.objects.all()
-                     ]
-        UserCard.objects.bulk_create(new_cards, batch_size=999)
-
-    def _add_card_category_m2m_relateship(self, user):
-        """Связываю созданные карточки и категории, основываясь на связи
-        базовых категорий и карточек"""
-        user_categories = UserCategory.objects.filter(owner=user)
-        user_cards = UserCard.objects.filter(owner=user)
-        relates = []
-        for category in user_categories:
-            matched_cards = BasicCategory.objects.get(
-                slug=category.slug).cards.values()
-            for card in user_cards:
-                for matched_card in matched_cards:
-                    if card.ru_word == matched_card['ru_word'] and \
-                            card.en_word == matched_card['en_word']:
-                        category_card_relate = UserCard.categories.through(
-                            usercard_id=card.id, usercategory_id=category.id)
-                        relates.append(category_card_relate)
-        UserCard.categories.through.objects.bulk_create(relates,
-                                                        batch_size=999)
-
-    def create(self, *args, **kwargs):
-        new_user = super(UserManager, self).create(*args, **kwargs)
-        self._create_user_related_objs(new_user)
-        self._add_card_category_m2m_relateship(new_user)
+    new_cards = [UserCard(ru_word=basic_card.ru_word,
+                          en_word=basic_card.en_word,
+                          transcription=basic_card.transcription,
+                          owner=user)
+                 for basic_card in BasicCard.objects.all()
+                 ]
+    UserCard.objects.bulk_create(new_cards, batch_size=999)
 
 
-# from learn.models import CustomUser
-# c = CustomUser.objects.create(username='greee',password='greee1223')
+def _add_card_category_m2m_relation(user):
+    """Связываю созданные карточки и категории, основываясь на связи
+    базовых категорий и карточек"""
+    user_categories = UserCategory.objects.filter(owner=user)
+    user_cards = UserCard.objects.filter(owner=user)
+    relates = []
+    for category in user_categories:
+        matched_cards = BasicCategory.objects.get(
+            slug=category.slug).cards.values()
+        for card in user_cards:
+            for matched_card in matched_cards:
+                if card.ru_word == matched_card['ru_word'] and \
+                        card.en_word == matched_card['en_word']:
+                    category_card_relate = UserCard.categories.through(
+                        usercard_id=card.id, usercategory_id=category.id)
+                    relates.append(category_card_relate)
+    UserCard.categories.through.objects.bulk_create(relates,
+                                                    batch_size=999)
 
 
-class CustomUser(User):
-    objects = UserManager()
+@receiver(post_save, sender=User)
+def create_user_related_data(sender, instance, created, **kwargs):
+    if created:
+        try:
+            _create_user_related_objs(instance)
+            _add_card_category_m2m_relation(instance)
+        except:
+            pass

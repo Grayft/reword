@@ -11,5 +11,9 @@ class CardCategoryAdmin(admin.ModelAdmin):
     pass
 
 
+class CustomUserAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(UserCard, CardAdmin)
 admin.site.register(UserCategory, CardCategoryAdmin)
