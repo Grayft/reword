@@ -3,6 +3,7 @@ from pytils.translit import slugify
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class BasicCategory(models.Model):
@@ -42,6 +43,7 @@ class UserCategory(models.Model):
     slug = models.SlugField(max_length=100, db_index=True)
     owner = models.ForeignKey(User, verbose_name='Пользователь',
                               on_delete=models.CASCADE)
+    is_selected = models.BooleanField(default=False, blank=True)
 
     class Meta:
         unique_together = ('owner', 'slug')
@@ -94,8 +96,9 @@ def _create_user_related_objs(user):
     new_categories = [UserCategory(name=basic_category.name,
                                    slug=basic_category.slug,
                                    owner=user)
-                      for basic_category in BasicCategory.objects.all(
-        ).order_by('id')[0:2]
+                      for basic_category in BasicCategory.objects.all()
+            #           BasicCategory.objects.filter(
+            # id__in=[2, 8, 10, 12, 13, 14,3,4,5,6,7,9,15,16,17,18,18,19,20])
                       ]
     UserCategory.objects.bulk_create(new_categories,
                                      batch_size=999)
@@ -105,6 +108,8 @@ def _create_user_related_objs(user):
                           transcription=basic_card.transcription,
                           owner=user)
                  for basic_card in BasicCard.objects.all()
+            #      BasicCard.objects.filter(
+            # categories__id__in=[2, 8, 10, 12, 13, 14,3,4,5,6,7,9,15,16,17,18,18,19,20])
                  ]
     UserCard.objects.bulk_create(new_cards, batch_size=999)
 
@@ -114,19 +119,29 @@ def _add_card_category_m2m_relation(user):
     базовых категорий и карточек"""
     user_categories = UserCategory.objects.filter(owner=user)
     user_cards = UserCard.objects.filter(owner=user)
-    relates = []
+
     for category in user_categories:
+        relates = []
         matched_cards = BasicCategory.objects.get(
             slug=category.slug).cards.values()
         for card in user_cards:
-            for matched_card in matched_cards:
-                if card.ru_word == matched_card['ru_word'] and \
-                        card.en_word == matched_card['en_word']:
-                    category_card_relate = UserCard.categories.through(
-                        usercard_id=card.id, usercategory_id=category.id)
-                    relates.append(category_card_relate)
-    UserCard.categories.through.objects.bulk_create(relates,
-                                                    batch_size=999)
+            try:
+                # если карточка и категория не соответствуют,
+                # то вылетает ошибка и идем дальше
+                matched_card = BasicCard.objects.get(
+                    categories__slug=category.slug, ru_word=card.ru_word,
+                    en_word=card.en_word)
+
+                category_card_relate = UserCard.categories.through(
+                    usercard_id=card.id, usercategory_id=category.id)
+                relates.append(category_card_relate)
+            except ObjectDoesNotExist:
+                pass
+        # Выполняю bulk_create для каждой категории, т.к. если одним запросом
+        # все связи добавлять (17000 строк), то SQLite не заносит их вообще
+        # даже с batch_size=999
+        UserCard.categories.through.objects.bulk_create(relates,
+                                                        batch_size=999)
 
 
 @receiver(post_save, sender=User)
